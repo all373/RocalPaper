@@ -3,6 +3,9 @@ import argparse
 from contextlib import ExitStack
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import io
+import hashlib
+from datetime import date
+import time
 import json
 import os
 from pathlib import Path
@@ -121,7 +124,22 @@ class Workspace:
             temp.write_text(content, 'utf-8')
             os.replace(temp, dest)
 
-    def compile(self, pid, entry):
+    def source_digest(self, folder, entry):
+        digest = hashlib.sha256(('rocal-paper-v2:' + date.today().isoformat() + ':' + entry).encode())
+        engine = Path(self.engine)
+        for path in [engine, engine.parents[2] / 'texmf-dist' / 'ls-R']:
+            if path.is_file():
+                digest.update(str(path).encode())
+                digest.update(str(path.stat().st_mtime_ns).encode())
+        for path in sorted((folder / 'source').rglob('*')):
+            if path.is_file():
+                digest.update(path.relative_to(folder / 'source').as_posix().encode())
+                digest.update(b'\0')
+                with path.open('rb') as stream:
+                    digest.update(hashlib.file_digest(stream, 'sha256').digest())
+        return digest.hexdigest()
+
+    def compile(self, pid, entry, force=False):
         if not self.engine:
             raise ValueError('LaTeXが見つかりません。同梱TeXフォルダーを確認してください。')
         main = self.file(pid, entry)
@@ -130,13 +148,30 @@ class Workspace:
         if not self.compile_lock.acquire(blocking=False):
             raise ValueError('別のPDF生成が進行中です。')
         folder = self.project(pid)
+        started = time.perf_counter()
         try:
+            with self.lock:
+                fingerprint = self.source_digest(folder, entry)
+                stamp = folder / 'compile-state.json'
+                if not force and stamp.is_file():
+                    try:
+                        cached = json.loads(stamp.read_text('utf-8'))
+                        if cached['digest'] == fingerprint and (folder / 'preview.pdf').is_file() and all((folder / f'page-{n}.png').is_file() for n in range(1, cached['pages'] + 1)):
+                            return {'ok': True, 'log': cached['log'], 'pages': cached['pages'], 'cached': True,
+                                    'seconds': time.perf_counter() - started}
+                    except (ValueError, KeyError, TypeError):
+                        pass
+                stamp.unlink(missing_ok=True)
             # A fresh source snapshot prevents stale PDFs and auxiliary files.
             with tempfile.TemporaryDirectory(prefix='rocal-paper-') as tmp:
                 work = Path(tmp)
                 with self.lock:
                     shutil.copytree(folder / 'source', work, dirs_exist_ok=True)
+                    fingerprint = self.source_digest(folder, entry)
                     (folder / 'preview.pdf').unlink(missing_ok=True)
+                    for old_page in folder.glob('page-*.png'):
+                        old_page.unlink()
+                compile_dir = work / Path(entry).parent
                 flags = ['-interaction=nonstopmode', '-halt-on-error', '-file-line-error', '-no-shell-escape']
                 if self.miktex:
                     flags.append('--disable-installer')
@@ -147,13 +182,13 @@ class Workspace:
                            TEXMFCONFIG=str(self.data.parent / 'tex-config'))
                 logs = []
                 def run(command):
-                    result = subprocess.run(command, cwd=work, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    result = subprocess.run(command, cwd=compile_dir, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                             timeout=90, creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
                     logs.append(result.stdout.decode('utf-8', errors='replace'))
                     return result.returncode == 0
-                command = [self.engine, *flags, entry]
+                command = [self.engine, *flags, main.name]
                 ok = run(command)
-                aux = work / (main.stem + '.aux')
+                aux = compile_dir / (main.stem + '.aux')
                 if ok and aux.exists() and '\\bibdata' in aux.read_text('utf-8', errors='replace'):
                     bibtex = shutil.which('bibtex', path=str(Path(self.engine).parent))
                     if not bibtex:
@@ -165,7 +200,7 @@ class Workspace:
                     ok = run(command)
                 if ok:
                     ok = run(command)
-                pdf = work / (main.stem + '.pdf')
+                pdf = compile_dir / (main.stem + '.pdf')
                 ok = ok and pdf.is_file()
                 if ok:
                     shutil.copyfile(pdf, folder / 'preview.pdf')
@@ -190,7 +225,9 @@ class Workspace:
                         logs.append('PDFium not installed; use PDF download.')
                 log = '\n'.join(logs)[-100_000:]
                 (folder / 'compile.log').write_text(log, 'utf-8')
-                return {'ok': ok, 'log': log, 'pages': pages}
+                if ok:
+                    stamp.write_text(json.dumps({'digest': fingerprint, 'pages': pages, 'log': log}), 'utf-8')
+                return {'ok': ok, 'log': log, 'pages': pages, 'cached': False, 'seconds': time.perf_counter() - started}
         except subprocess.TimeoutExpired:
             return {'ok': False, 'log': 'コンパイルが90秒を超えたため停止しました。'}
         finally:
@@ -276,7 +313,7 @@ class Handler(BaseHTTPRequestHandler):
                     ws.save(body['id'], body['name'], body['content'])
                     return self.send({'ok': True})
                 if path.path == '/api/compile':
-                    return self.send(ws.compile(body['id'], body['entry']))
+                    return self.send(ws.compile(body['id'], body['entry'], force=body.get('force') is True))
                 if path.path == '/api/assist':
                     return self.send(ws.assist(body['task'], body['text'], body['model'], body.get('instruction', '')))
             else:

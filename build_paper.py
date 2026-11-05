@@ -58,14 +58,29 @@ def python_notices(destination):
     (destination / 'licenses' / 'python-inventory.json').write_text(json.dumps(inventory, indent=2), 'utf-8')
 
 
+def copy_if_changed(source, destination):
+    source, destination = Path(source), Path(destination)
+    if destination.is_file():
+        a, b = source.stat(), destination.stat()
+        if a.st_size == b.st_size and a.st_mtime_ns == b.st_mtime_ns:
+            return str(destination)
+    return shutil.copy2(source, destination)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--cache', type=Path, default=SOURCE / 'build')
     parser.add_argument('--output', type=Path, default=SOURCE / 'dist' / 'RocalPaper')
+    parser.add_argument('--reuse-tex', action='store_true', help='Keep the existing output TeX distribution; do not download or copy it')
     args = parser.parse_args()
     cache, destination = args.cache.resolve(), args.output.resolve()
     cache.mkdir(parents=True, exist_ok=True)
-    tex = prepare_tex(cache)
+    if args.reuse_tex:
+        if not (destination / 'tex/TinyTeX/bin/windows/pdflatex.exe').is_file():
+            raise RuntimeError('--reuse-tex requires an existing bundled TeX directory')
+        tex = destination / 'tex'
+    else:
+        tex = prepare_tex(cache)
     subprocess.run([sys.executable, '-m', 'PyInstaller', '--noconfirm', '--onedir', '--windowed', '--noupx',
                     '--name', 'RocalPaper', '--contents-directory', '_internal',
                     '--paths', str(SOURCE), '--add-data', f'{SOURCE / "paper_studio/ui"};paper_studio/ui',
@@ -77,13 +92,14 @@ def main():
     if destination == built:
         raise ValueError('Output must differ from the staging folder')
     destination.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(built, destination, dirs_exist_ok=True)
+    shutil.copytree(built, destination, dirs_exist_ok=True, copy_function=copy_if_changed)
     print('Bundling TinyTeX...', flush=True)
-    shutil.copytree(tex / 'TinyTeX', destination / 'tex' / 'TinyTeX', dirs_exist_ok=True)
-    for name in ['README.md', 'LICENSE', 'THIRD_PARTY.md']:
+    if not args.reuse_tex:
+        shutil.copytree(tex / 'TinyTeX', destination / 'tex' / 'TinyTeX', dirs_exist_ok=True, copy_function=copy_if_changed)
+    for name in ['README.md', 'LICENSE', 'THIRD_PARTY.md', 'VALIDATION.md']:
         shutil.copy2(SOURCE / name, destination / name)
     python_notices(destination)
-    (destination / 'build-info.json').write_text(json.dumps({'app_version': '0.1.0', 'tinytex_version': TEX_VERSION,
+    (destination / 'build-info.json').write_text(json.dumps({'app_version': '0.2.0', 'tex_reused': args.reuse_tex, 'tinytex_version': TEX_VERSION,
         'tinytex_url': TEX_URL, 'tinytex_sha256': TEX_SHA256, 'python': sys.version}, indent=2), 'utf-8')
     report = destination / 'self-test.json'
     report.unlink(missing_ok=True)

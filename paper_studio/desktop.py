@@ -24,6 +24,14 @@ def bundled_engine(root):
     return engine
 
 
+def data_home(root, override=None):
+    if override:
+        return Path(override).resolve()
+    if (root / 'portable.json').is_file():
+        return root / 'data'
+    return Path(os.environ.get('LOCALAPPDATA', str(Path.home()))) / 'RocalPaper'
+
+
 def self_test(root, output):
     # Never fall back to a machine-installed TeX or an external renderer.
     os.environ['PATH'] = str(Path(os.environ.get('SystemRoot', 'C:/Windows')) / 'System32')
@@ -54,7 +62,7 @@ def main():
         self_test(root, args.self_test)
         return
     import webview
-    home = args.data_dir or Path(os.environ.get('LOCALAPPDATA', str(Path.home()))) / 'RocalPaper'
+    home = data_home(root, args.data_dir)
     home.mkdir(parents=True, exist_ok=True)
     # One process per data folder, released automatically even after a crash.
     import msvcrt

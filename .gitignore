@@ -13,3 +13,5 @@ vendor/
 data/
 settings.json
 *.log
+/validation/
+/portable.json

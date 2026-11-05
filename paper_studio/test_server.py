@@ -32,10 +32,24 @@ class PaperTests(unittest.TestCase):
         self.assertTrue(result['ok'], result['log'])
         pdf = self.ws.project(self.pid) / 'preview.pdf'
         self.assertTrue(pdf.read_bytes().startswith(b'%PDF'))
+        reused = self.ws.compile(self.pid, 'main.tex')
+        self.assertTrue(reused['cached'])
+        self.ws.save(self.pid, 'extra.bib', '@article{new,title={New bibliography input}}')
+        changed = self.ws.compile(self.pid, 'main.tex')
+        self.assertFalse(changed['cached'])
         self.ws.save(self.pid, 'main.tex', '\\documentclass{article}\n\\begin{document}\\undefinedCommand\\end{document}')
         result = self.ws.compile(self.pid, 'main.tex')
         self.assertFalse(result['ok'])
         self.assertFalse(pdf.exists())
+        self.assertFalse((self.ws.project(self.pid) / 'compile-state.json').exists())
+
+    def test_nested_entry_resolves_adjacent_inputs(self):
+        if not self.ws.engine:
+            self.skipTest('LaTeX not installed')
+        self.ws.save(self.pid, 'paper/template.tex', '\\documentclass{article}\\begin{document}\\input{section}\\end{document}')
+        self.ws.save(self.pid, 'paper/section.tex', 'A section beside the entry file.')
+        result = self.ws.compile(self.pid, 'paper/template.tex')
+        self.assertTrue(result['ok'], result['log'])
 
     def test_ai_contract_and_local_only(self):
         with self.assertRaises(ValueError):

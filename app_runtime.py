@@ -9,6 +9,7 @@ import signal
 import socket
 import subprocess
 import time
+from process_job import ProcessJob
 from urllib.error import URLError
 from urllib.request import ProxyHandler, build_opener
 
@@ -101,6 +102,12 @@ def running_server(port, server=None, hidden=False):
     with log_path.open("wb") as log:
         process = subprocess.Popen(command, cwd=ROOT, stdout=log, stderr=log, **options)
         try:
+            job = ProcessJob(process)
+        except Exception:
+            process.kill()
+            process.wait(timeout=10)
+            raise
+        try:
             deadline = time.monotonic() + 180
             while time.monotonic() < deadline:
                 if process.poll() is not None:
@@ -116,6 +123,7 @@ def running_server(port, server=None, hidden=False):
                 raise RuntimeError(f"Startup timed out. See {log_path}")
             yield url, process
         finally:
+            job.close()
             if process.poll() is None:
                 if os.name == "nt":
                     subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"],

@@ -11,5 +11,5 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m unittest discover -s paper_studio -v
-      - run: python -m compileall -q paper_studio app_runtime.py build_paper.py
+      - run: python -m compileall -q paper_studio app_runtime.py process_job.py build_paper.py validate_interspeech.py
       - run: node --check paper_studio/ui/app.js

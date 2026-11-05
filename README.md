@@ -19,6 +19,23 @@ Windows 10/11のMicrosoft Edge WebView2 Runtimeを使用します。未導入の
 原稿の保存先は `%LOCALAPPDATA%\RocalPaper\projects`。接続設定は同じ親フォルダーの`settings.json`です。
 アプリを更新しても保存先は変わりません。保存はCtrl+S、またはファイル切替・PDF生成・ZIP出力時。定期自動保存はありません。
 
+### Dドライブでまとめて使う（ポータブルモード）
+
+EXEと同じ場所に `portable.json`（内容は `{}` で可）を置くと、原稿・設定・WebViewキャッシュを同じ場所の `data` に保存します。`--data-dir`を指定した場合はそちらを優先します。既存データの自動移動は行いません。
+
+この開発環境の配置は次のとおりです。以前のCドライブ側のコピーはバックアップとして残し、以降はD側を使用します。
+
+| 場所 | 用途 |
+| --- | --- |
+| `D:\RocalPaper\RocalPaper.exe` | 起動するアプリ |
+| `D:\RocalPaper\source` | Git管理する開発ソース |
+| `D:\RocalPaper\data` | 原稿・設定・キャッシュ |
+| `D:\RocalPaper\tex` | 既存の同梱TinyTeXを再利用 |
+| `D:\RocalPaper\build` | 再ビルド用の中間ファイル |
+| `D:\RocalPaper\validation\interspeech2026` | 公式paper kitと検証PDF・ログ |
+
+LLMモデルは既存の `D:\rocalLLM` を参照するため、重複コピーしません。
+
 ## ローカルAI
 
 AIなしでも編集・PDF生成は使えます。画面右上の **設定** から次のどちらかを選びます。
@@ -47,11 +64,27 @@ python -m venv .venv
 ```powershell
 # 保存先やビルドキャッシュを変更
 .\.venv\Scripts\python.exe build_paper.py --output D:\RocalPaper --cache D:\build-cache\RocalPaper
+# 既存TeXを保持してアプリだけ更新（再ダウンロード・再コピーなし）
+.\.venv\Scripts\python.exe build_paper.py --output D:\RocalPaper --cache D:\RocalPaper\build --reuse-tex
 # ソースのデスクトップ起動（同梱TeX準備後）
 .\.venv\Scripts\python.exe -m paper_studio.desktop --tex-root .\dist\RocalPaper
 # テスト
 .\.venv\Scripts\python.exe -m unittest discover -s paper_studio -v
 ```
+
+## Interspeech 2026で試す
+
+公式サイトが案内するpaper kitを取得し、review版とcamera-ready版をそれぞれプロジェクトとして作成して検証できます。既存プロジェクトの上書きはしません。
+
+```powershell
+.\.venv\Scripts\python.exe validate_interspeech.py --app-root D:\RocalPaper
+```
+
+アプリを起動し、`Interspeech 2026 — review validation` または `camera-ready validation` を選択します。メインファイルは`template.tex`です。両方とも6ページ、追加パッケージ不要で生成を確認しました。[検証結果](VALIDATION.md)
+
+原稿・画像・文献ファイル・日付・TeX実行ファイルやパッケージ索引が同じ場合、保存済みのPDFとページ画像を再利用します。APIの`force: true`で再コンパイルできます。変更を検出した場合は新しい一時ディレクトリーで作り直します。
+
+Windowsでは推論プロセスをJob Objectで所有し、アプリの異常終了時も子のモデルプロセスを終了させます。通常の終了だけに依存しません。
 
 ## 制限
 
