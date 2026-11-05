@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv*/
+build/
+dist/
+cache/
+vendor/
+*.spec
+*.gguf
+*.safetensors
+*.key
+.env*
+data/
+settings.json
+*.log
