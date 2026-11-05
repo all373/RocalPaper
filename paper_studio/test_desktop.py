@@ -16,7 +16,7 @@ class DesktopTests(unittest.TestCase):
             root = Path(temp)
             (root / 'portable.json').write_text('{}')
             self.assertEqual(data_home(root), root / 'data')
-            self.assertEqual(data_home(root, root / 'other'), root / 'other')
+            self.assertEqual(data_home(root, root / 'other'), (root / 'other').resolve())
 
     def test_unchanged_build_files_are_not_replaced(self):
         with tempfile.TemporaryDirectory() as temp:
