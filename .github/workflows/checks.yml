@@ -11,5 +11,7 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m unittest discover -s paper_studio -v
-      - run: python -m compileall -q paper_studio app_runtime.py process_job.py build_paper.py validate_interspeech.py
+      - run: python -m compileall -q paper_studio app_runtime.py process_job.py build_paper.py build_electron.py validate_interspeech.py validate_lifecycle.py
       - run: node --check paper_studio/ui/app.js
+      - run: node --check desktop/main.cjs
+      - run: node --test desktop/*.test.cjs

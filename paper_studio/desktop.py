@@ -54,9 +54,14 @@ def self_test(root, output):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--self-test', metavar='REPORT_JSON')
+    parser.add_argument('--render-pdf', nargs=2)
     parser.add_argument('--tex-root', type=Path)
     parser.add_argument('--data-dir', type=Path)
     args = parser.parse_args()
+    if args.render_pdf:
+        from paper_studio.worker import render_pdf
+        render_pdf(*args.render_pdf)
+        return
     root = args.tex_root or application_root()
     if args.self_test:
         self_test(root, args.self_test)

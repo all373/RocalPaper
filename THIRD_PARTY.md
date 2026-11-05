@@ -15,12 +15,14 @@ It retains the distribution's license files and package database.
 | TeX Live / packages / fonts | Individual licenses; `tex/TinyTeX/LICENSE.TL`, `LICENSE.CTAN`, package headers and `tlpkg/texlive.tlpdb`; https://tug.org/texlive/copying.html |
 | TeX Live source | https://tug.org/texlive/svn/ and https://tug.org/texlive/acquire.html |
 | Python | PSF license; https://docs.python.org/3/license.html |
+| Electron / Chromium / Node.js (0.3 desktop shell) | Electron MIT and bundled Chromium/third-party notices; `LICENSE.electron.txt` and `LICENSES.chromium.html` in the application directory; https://github.com/electron/electron |
+| electron-builder / NSIS (installer tooling) | Build tooling and installer notices; https://www.electron.build/ and https://nsis.sourceforge.io/License |
 | pywebview | BSD-3-Clause; https://github.com/r0x0r/pywebview |
 | PyInstaller | GPL with bootloader exception; https://pyinstaller.org/en/stable/license.html |
 | pypdfium2 / PDFium | Apache-2.0 OR BSD-3-Clause wrapper; PDFium BSD and third-party notices retained by `--collect-all`; https://github.com/pypdfium2-team/pypdfium2 |
 | Pillow | HPND and third-party notices; https://github.com/python-pillow/Pillow |
 | pythonnet / clr-loader / bottle and dependencies | Package notices copied into `licenses/python-packages` by the builder |
-| Microsoft WebView2 | Windows component, used from the host; not redistributed here; https://developer.microsoft.com/microsoft-edge/webview2/ |
+| Microsoft WebView2 | Legacy 0.2 shell only; 0.3 does not require it; https://developer.microsoft.com/microsoft-edge/webview2/ |
 
 Before redistributing a built executable folder, review each component's
 redistribution requirements, including corresponding source distribution for

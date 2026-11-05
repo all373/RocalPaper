@@ -5,6 +5,8 @@ from pathlib import Path
 import socket
 import subprocess
 import threading
+import time
+import logging
 from urllib.parse import urlsplit
 
 
@@ -24,8 +26,16 @@ class Settings:
         if Path('D:/rocalLLM/model_catalog.json').is_file():
             self.values['llm_root'] = 'D:/rocalLLM'
         if self.path.is_file():
-            self.values.update(json.loads(self.path.read_text('utf-8')))
-        self.values['llm_url'] = local_url(self.values['llm_url'])
+            try:
+                saved = json.loads(self.path.read_text('utf-8'))
+                url = local_url(saved['llm_url'])
+                if not isinstance(saved.get('llm_root', ''), str):
+                    raise ValueError('Invalid model path')
+                self.values.update(llm_url=url, llm_root=saved.get('llm_root', ''))
+            except (ValueError, KeyError, TypeError):
+                backup = self.path.with_name(f'settings-damaged-{time.time_ns()}.json')
+                self.path.replace(backup)
+                logging.warning('Damaged settings preserved; defaults restored')
         self.workspace = None
         self.context = None
         self.lock = threading.RLock()

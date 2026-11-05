@@ -3,3 +3,5 @@
 #pages{flex:1;min-height:0;overflow:auto;padding:16px}#pages img{display:block;width:100%;height:auto;margin:0 auto 16px;box-shadow:0 2px 12px #0002}
 
 dialog{width:min(620px,90vw);border:1px solid var(--line);border-radius:12px;padding:26px;color:#263d38;background:#fbfcf9}dialog::backdrop{background:#172b2377}dialog input{width:100%;padding:11px;border:1px solid var(--line);border-radius:6px}dialog .actions{margin-top:24px;flex-wrap:wrap}#settingsError{color:#8b482c;font-size:12px}
+
+dialog pre{white-space:pre-wrap;overflow:auto;max-height:45vh;background:#edf2eb;padding:16px;border-radius:6px;font:12px/1.7 Consolas,monospace}#lessonExplanation{line-height:1.9}#learnDialog{width:min(720px,90vw)}.toolbar{gap:8px}#answer{white-space:pre-wrap}

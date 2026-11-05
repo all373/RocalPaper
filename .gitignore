@@ -15,3 +15,5 @@ settings.json
 *.log
 /validation/
 /portable.json
+node_modules/
+release/

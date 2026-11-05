@@ -62,6 +62,7 @@ class PaperTests(unittest.TestCase):
         self.assertEqual(self.ws.assist('polish', 'Our results is good.', 'local')['text'], 'Revised passage.')
         self.assertEqual(captured[0][0], '/v1/chat/completions')
         self.assertIn('Our results is good.', captured[0][1]['messages'][1]['content'])
+        self.assertNotIn('Explain in Japanese', captured[0][1]['messages'][0]['content'])
         with self.assertRaises(ValueError):
             self.ws.assist('polish', 'a' * 10001, 'local')
 

@@ -1,0 +1,73 @@
+{
+  "name": "rocal-paper",
+  "version": "0.3.0",
+  "description": "Local paper writing and guided LaTeX learning",
+  "author": "RocalPaper contributors",
+  "license": "MIT",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test desktop/*.test.cjs",
+    "dist": "electron-builder --win nsis --x64 --publish never",
+    "setup:runtime": "node node_modules/electron/install.js"
+  },
+  "devDependencies": {
+    "electron": "45.2.3",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "org.rocalpaper.desktop",
+    "productName": "RocalPaper",
+    "directories": {
+      "output": "dist/electron"
+    },
+    "files": [
+      "desktop/*.cjs",
+      "!desktop/*.test.cjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "build/backend/RocalPaperWorker",
+        "to": "backend"
+      },
+      {
+        "from": "build/tex/TinyTeX",
+        "to": "tex/TinyTeX"
+      },
+      {
+        "from": "THIRD_PARTY.md",
+        "to": "THIRD_PARTY.md"
+      },
+      {
+        "from": "build/licenses",
+        "to": "licenses"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "desktop/assets/icon.ico",
+      "signExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false,
+      "createDesktopShortcut": true,
+      "runAfterFinish": false,
+      "artifactName": "RocalPaper-Setup-${version}.${ext}"
+    }
+  },
+  "overrides": {
+    "app-builder-lib": {
+      "minimatch": "11.0.1",
+      "@electron/universal": {
+        "minimatch": "11.0.1"
+      }
+    },
+    "@electron/universal": {
+      "minimatch": "11.0.1"
+    }
+  }
+}

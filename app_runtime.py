@@ -100,7 +100,7 @@ def running_server(port, server=None, hidden=False):
         options["creationflags"] |= subprocess.CREATE_NO_WINDOW
     opener = build_opener(ProxyHandler({}))
     with log_path.open("wb") as log:
-        process = subprocess.Popen(command, cwd=ROOT, stdout=log, stderr=log, **options)
+        process = subprocess.Popen(command, cwd=ROOT, stdin=subprocess.DEVNULL, stdout=log, stderr=log, **options)
         try:
             job = ProcessJob(process)
         except Exception:
